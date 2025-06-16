@@ -105,6 +105,8 @@ function organizarDatosPorFecha(respuestas) {
 }
 
 // --- NUEVA FUNCIÓN: EL CEREBRO FINANCIERO ---
+// REEMPLAZA SOLAMENTE ESTA FUNCIÓN EN TU SCRIPT.JS
+
 function calcularMetricas(datosOrganizados) {
     const fechas = Object.keys(datosOrganizados).sort();
     const tickers = Object.keys(datosOrganizados[fechas[0]]);
@@ -119,32 +121,39 @@ function calcularMetricas(datosOrganizados) {
     const seriesDeRendimientos = seriesDePrecios.map(serie => {
         const rendimientos = [];
         for (let i = 1; i < serie.length; i++) {
-            // (Precio Hoy / Precio Ayer) - 1
             const rendimiento = (serie[i] / serie[i-1]) - 1;
             rendimientos.push(rendimiento);
         }
         return rendimientos;
     });
 
-    // 3. Usamos math.js para calcular las métricas clave
-    // Rendimiento esperado (promedio de rendimientos diarios)
+    // 3. Calculamos el rendimiento esperado y la volatilidad (esto ya funcionaba)
     const rendimientosEsperados = seriesDeRendimientos.map(serie => math.mean(serie));
-
-    // Volatilidades (desviación estándar de los rendimientos)
     const volatilidades = seriesDeRendimientos.map(serie => math.std(serie));
 
-    // Matriz de Covarianza (el "baile" de las acciones)
-    const matrizCovarianza = math.covariance(seriesDeRendimientos);
+    // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
+    // 4. Construimos la Matriz de Covarianza manualmente, par por par.
+    const matrizCovarianza = [];
+    for (let i = 0; i < nActivos; i++) {
+        matrizCovarianza[i] = [];
+        for (let j = 0; j < nActivos; j++) {
+            // Usamos la función correcta de math.js que calcula la covarianza entre dos series
+            const cov = math.covariance(seriesDeRendimientos[i], seriesDeRendimientos[j]);
+            matrizCovarianza[i][j] = cov;
+        }
+    }
 
-    // Los rendimientos son diarios, los anualizamos para que sean más intuitivos
-    // (asumiendo 252 días de mercado al año)
-    const rendimientosAnualizados = rendimientosEsperados.map(r => r * 252);
-    const volatilidadesAnualizadas = volatilidades.map((v, i) => v * Math.sqrt(252));
+    // 5. Anualizamos todas las métricas para que sean más intuitivas
+    const diasDeMercado = 252;
+    const rendimientosAnualizados = rendimientosEsperados.map(r => r * diasDeMercado);
+    const volatilidadesAnualizadas = volatilidades.map(v => v * Math.sqrt(diasDeMercado));
+    // La matriz de covarianza también se anualiza multiplicando por los días de mercado
+    const matrizCovAnualizada = math.multiply(matrizCovarianza, diasDeMercado);
     
     return {
         tickers,
         rendimientosAnualizados,
         volatilidadesAnualizadas,
-        matrizCovarianza
+        matrizCovarianza: matrizCovAnualizada
     };
 }
