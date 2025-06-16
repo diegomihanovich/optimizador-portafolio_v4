@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Optimizador Valiente</title>
+</head>
+<body>
+
+    <div class="container">
+        <h1>El Optimizador Valiente 🚀</h1>
+        <p>Una herramienta para construir un portafolio de inversión más inteligente.</p>
+
+        <fieldset>
+            <legend>1. Elige tu perfil de riesgo:</legend>
+            <label><input type="radio" name="perfil" value="conservador" checked> Conservador (Prefiero dormir tranquilo)</label><br>
+            <label><input type="radio" name="perfil" value="moderado"> Moderado (Un balance entre riesgo y beneficio)</label><br>
+            <label><input type="radio" name="perfil" value="agresivo"> Agresivo (¡Vamos por el máximo rendimiento!)</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>2. ¿Cuántos años de historia usamos para calcular?</legend>
+            <label><input type="radio" name="periodo" value="3" > 3 Años</label><br>
+            <label><input type="radio" name="periodo" value="5" checked> 5 Años</label><br>
+            <label><input type="radio" name="periodo" value="10"> 10 Años</label>
+        </fieldset>
+
+        <fieldset>
+            <legend>3. Ingresa los tickers de las acciones (sólo de EE.UU.):</legend>
+            <input type="text" id="tickers-input" placeholder="Ej: AAPL, GOOG, MSFT, SPY" size="50">
+        </fieldset>
+        
+        <button id="optimizar-btn">¡Optimizar mi Portafolio!</button>
+
+        <div id="resultados-container">
+            <h2>Tu Portafolio Óptimo:</h2>
+            <div id="grafico-torta">
+                </div>
+            <div id="texto-resultados">
+                </div>
+        </div>
+    </div>
+
+</body>
+</html>
