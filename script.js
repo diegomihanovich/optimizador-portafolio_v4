@@ -38,15 +38,12 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// --- FUNCIONES DE AYUDA REESCRITAS ---
+// --- FUNCIONES DE AYUDA (VERSIÓN FINAL Y ROBUSTA) ---
 
-// Función NUEVA para buscar datos en la nueva dirección de Yahoo
 async function fetchDataForTicker(ticker) {
     const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
-    // La nueva API usa "range" en lugar de fechas exactas, lo cual es más fácil
-    const rango = `${periodoAños}y`; // ej: "5y" para 5 años
+    const rango = `${periodoAños}y`;
 
-    // Esta es la NUEVA URL que sí funciona
     const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${rango}&interval=1d`;
     const urlProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlYahoo)}`;
 
@@ -54,41 +51,49 @@ async function fetchDataForTicker(ticker) {
     if (!respuesta.ok) throw new Error(`Error de red para ${ticker}`);
 
     const datosCrudos = await respuesta.json();
-    const datos = JSON.parse(datosCrudos.contents); // El contenido es un string JSON que hay que parsear
+    const datos = JSON.parse(datosCrudos.contents);
 
-    // Validamos que Yahoo no devolvió un error interno
-    if (datos.chart.error) {
-        throw new Error(datos.chart.error.description);
+    // --- ¡AQUÍ ESTÁ LA CORRECCIÓN FINAL! ---
+    // Esta es la validación más robusta.
+    // 1. Primero pregunta si la "oficina" (datos.chart) está vacía (es null).
+    // 2. Si no está vacía, pregunta si adentro hay una nota de error (datos.chart.error).
+    if (!datos.chart || datos.chart.error) {
+        // Si cualquiera de las dos es cierta, lanzamos un error claro.
+        const mensajeError = datos.chart ? datos.chart.error.description : `No se encontraron datos para el ticker "${ticker}"`;
+        throw new Error(mensajeError);
     }
     
-    // Devolvemos el ticker y el resultado bueno
     return { ticker, data: datos.chart.result[0] };
 }
 
-// Función NUEVA para organizar los datos desde el formato JSON
 function organizarDatosPorFecha(respuestas) {
     const tablaFinal = {};
-    const tickers = respuestas.map(r => r.ticker);
+    if (respuestas.length === 0 || !respuestas[0].data.timestamp) {
+        return tablaFinal; // Devuelve tabla vacía si no hay datos
+    }
 
-    // Necesitamos las fechas del primer activo como referencia
     const timestamps = respuestas[0].data.timestamp;
 
     for (let i = 0; i < timestamps.length; i++) {
-        // Convertimos el timestamp a una fecha legible YYYY-MM-DD
         const ts = timestamps[i] * 1000;
         const fecha = new Date(ts).toISOString().split('T')[0];
-
         tablaFinal[fecha] = {};
 
-        // Para cada ticker, buscamos el precio de cierre en el mismo índice (i)
         respuestas.forEach(resp => {
             const ticker = resp.ticker;
-            const preciosCierre = resp.data.indicators.quote[0].close;
-            // Nos aseguramos que haya un precio para ese día
-            if (preciosCierre && preciosCierre[i] !== null) {
-                tablaFinal[fecha][ticker] = preciosCierre[i];
+            if (resp.data.indicators.quote[0].close) {
+                const precioCierre = resp.data.indicators.quote[0].close[i];
+                if (precioCierre !== null) {
+                    tablaFinal[fecha][ticker] = precioCierre;
+                }
             }
         });
+    }
+    // Filtramos días en los que algún ticker no tenga datos, para tener una tabla consistente
+    for (const fecha in tablaFinal) {
+        if (Object.keys(tablaFinal[fecha]).length < respuestas.length) {
+            delete tablaFinal[fecha];
+        }
     }
     return tablaFinal;
 }
