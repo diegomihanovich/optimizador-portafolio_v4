@@ -19,28 +19,22 @@ document.addEventListener('DOMContentLoaded', () => {
         alert("¡Recibido! Buscando y procesando datos... Esto puede tardar unos segundos.");
 
         try {
-            // Convertimos el string de tickers en un array limpio
             const tickers = tickersString.split(',').map(ticker => ticker.trim().toUpperCase());
             
-            // Usamos Promise.all para buscar los datos de TODOS los tickers en paralelo.
-            // ¡Es mucho más rápido!
             const respuestasCrudas = await Promise.all(
                 tickers.map(ticker => fetchDataForTicker(ticker))
             );
 
-            // Ahora "traducimos" cada respuesta CSV a un formato que JS entiende (JSON)
             const datosParseados = respuestasCrudas.map((respuesta, index) => {
                 const csvData = respuesta.datos.contents;
                 const ticker = tickers[index];
-                // Usamos Papa Parse, nuestro traductor!
                 const parsed = Papa.parse(csvData, {
-                    header: true, // La primera fila es el encabezado
-                    dynamicTyping: true // Convierte números y booleanos automáticamente
+                    header: true,
+                    dynamicTyping: true
                 });
                 return { ticker, data: parsed.data };
             });
 
-            // Finalmente, organizamos todo en una sola tabla, alineada por fecha
             const datosOrganizados = organizarDatosPorFecha(datosParseados);
 
             console.log("¡Datos organizados y listos para calcular!");
@@ -53,8 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 });
-
-// --- NUEVAS FUNCIONES DE AYUDA ---
 
 // Función dedicada a buscar datos para UN solo ticker
 async function fetchDataForTicker(ticker) {
@@ -75,11 +67,9 @@ async function fetchDataForTicker(ticker) {
     }
     const datos = await respuesta.json();
     
-    // --- ¡AQUÍ ESTÁ LA VALIDACIÓN NUEVA! ---
-    // Chequeamos si el contenido que nos llegó es un error de Yahoo o datos reales.
-    // Un CSV válido siempre empieza con "Date". Un error de Yahoo, no.
-    if (!datos.contents || !datos.contents.startsWith('Date,')) {
-        // Lanzamos un error específico para que el usuario sepa qué ticker falló.
+    // --- AQUÍ ESTÁ LA CORRECCIÓN ---
+    // Chequeamos si el contenido existe y, ANTES de revisar si empieza con "Date", le quitamos los espacios en blanco del principio con .trim()
+    if (!datos.contents || !datos.contents.trim().startsWith('Date,')) {
         throw new Error(`No se encontraron datos para el ticker "${ticker}". Puede que no exista o no haya datos para el período seleccionado.`);
     }
 
@@ -92,16 +82,11 @@ function organizarDatosPorFecha(datosParseados) {
 
     datosParseados.forEach(activo => {
         activo.data.forEach(fila => {
-            // Nos aseguramos que la fila tenga una fecha y un precio de cierre
             if (fila.Date && fila['Adj Close'] !== null) {
                 const fecha = fila.Date;
-
-                // Si la fecha no existe en nuestra tabla, la creamos
                 if (!tablaFinal[fecha]) {
                     tablaFinal[fecha] = {};
                 }
-
-                // Agregamos el precio de cierre ajustado del activo para esa fecha
                 tablaFinal[fecha][activo.ticker] = fila['Adj Close'];
             }
         });
