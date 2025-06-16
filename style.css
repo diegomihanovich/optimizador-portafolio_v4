@@ -1,0 +1,84 @@
+/* Estilo general para todo el cuerpo de la página */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f4f7f6; /* Un gris muy claro para el fondo */
+    color: #333; /* Un gris oscuro para el texto, más fácil de leer que el negro puro */
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+}
+
+/* Un contenedor para centrar nuestro contenido y darle un ancho máximo */
+.container {
+    max-width: 800px;
+    margin: 0 auto; /* Este truco centra el contenedor horizontalmente */
+    background-color: #ffffff; /* Fondo blanco para el contenido principal */
+    padding: 30px;
+    border-radius: 8px; /* Bordes redondeados para un look moderno */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05); /* Una sombra sutil */
+}
+
+/* Estilo para el título principal */
+h1 {
+    color: #0056b3; /* Un azul corporativo */
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+/* Estilo para el subtítulo */
+p {
+    text-align: center;
+    color: #666;
+    font-size: 1.1em;
+    margin-bottom: 30px;
+}
+
+/* Estilo para agrupar las secciones de opciones */
+fieldset {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+legend {
+    font-weight: bold;
+    color: #0056b3;
+    padding: 0 10px;
+}
+
+/* Estilo para la caja de texto de los tickers */
+#tickers-input {
+    width: 95%;
+    padding: 10px;
+    font-size: 1em;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+/* Estilo para nuestro botón mágico */
+#optimizar-btn {
+    display: block; /* Hace que el botón ocupe todo el ancho */
+    width: 100%;
+    padding: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #fff; /* Texto blanco */
+    background-color: #28a745; /* Un verde optimista */
+    border: none;
+    border-radius: 5px;
+    cursor: pointer; /* Cambia el cursor a una manito al pasar por encima */
+    transition: background-color 0.3s ease; /* Transición suave de color */
+}
+
+/* Efecto al pasar el mouse por encima del botón */
+#optimizar-btn:hover {
+    background-color: #218838; /* Un verde un poco más oscuro */
+}
+
+/* Estilo para el contenedor de resultados (que por ahora está oculto) */
+#resultados-container {
+    margin-top: 30px;
+    padding: 20px;
+    border-top: 2px solid #eee;
+}
