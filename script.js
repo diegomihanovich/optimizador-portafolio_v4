@@ -5,41 +5,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const botonOptimizar = document.getElementById('optimizar-btn');
     const tickersInput = document.getElementById('tickers-input');
     
-    // --- INICIO DEL CÓDIGO NUEVO ---
-    // Le enseñamos a la caja de texto a reaccionar a la tecla "Enter"
+    // OYENTE #1: Le enseñamos a la caja de texto a reaccionar a la tecla "Enter"
+    // Este "secretario" se encarga de la tecla Enter.
     tickersInput.addEventListener('keydown', (event) => {
-        // Si la tecla que se presionó fue 'Enter'...
         if (event.key === 'Enter') {
-            // ...prevenimos el comportamiento por defecto (que es recargar la página)
-            event.preventDefault();
-            // ...y hacemos "clic" en el botón por código. ¡Un truco genial!
-            botonOptimizar.click();
+            event.preventDefault(); // Prevenimos que la página se recargue
+            botonOptimizar.click(); // Hacemos "clic" en el botón por código
         }
     });
-    // --- FIN DEL CÓDIGO NUEVO ---
 
-    // 2. Le decimos al botón que se ponga a "escuchar" un evento: el 'click'
+    // OYENTE #2: Le decimos al botón que se ponga a "escuchar" un evento: el 'click'
+    // Este "secretario" se encarga de los clics.
     botonOptimizar.addEventListener('click', () => {
         
         // Cuando alguien haga click, se ejecutará este código:
         
-        // 3. Obtenemos los valores seleccionados por el usuario
         const perfilRiesgo = document.querySelector('input[name="perfil"]:checked').value;
         const periodo = document.querySelector('input[name="periodo"]:checked').value;
         const tickers = tickersInput.value;
 
-        // 4. Creamos un "paquete" con toda la información
         const seleccionUsuario = {
             perfil: perfilRiesgo,
             periodo: periodo,
             activos: tickers
         };
 
-        // 5. ¡El truco de magia! Mostramos este paquete en la consola del desarrollador.
         console.log("El usuario ha seleccionado:");
         console.log(seleccionUsuario);
 
         alert("¡Recibimos tu selección! Revisa la consola para ver los detalles (Clic derecho -> Inspeccionar -> Consola).");
-
     });
 });
