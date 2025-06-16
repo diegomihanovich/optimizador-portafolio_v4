@@ -1,38 +1,70 @@
-// Este código se ejecutará cuando todo el contenido del HTML se haya cargado
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 1. Guardamos en variables los elementos del HTML con los que vamos a interactuar
     const botonOptimizar = document.getElementById('optimizar-btn');
     const tickersInput = document.getElementById('tickers-input');
-    
-    // OYENTE #1: Le enseñamos a la caja de texto a reaccionar a la tecla "Enter"
-    // Este "secretario" se encarga de la tecla Enter.
+
+    // OYENTE #1: Escucha la tecla Enter
     tickersInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
-            event.preventDefault(); // Prevenimos que la página se recargue
-            botonOptimizar.click(); // Hacemos "clic" en el botón por código
+            event.preventDefault();
+            botonOptimizar.click();
         }
     });
 
-    // OYENTE #2: Le decimos al botón que se ponga a "escuchar" un evento: el 'click'
-    // Este "secretario" se encarga de los clics.
-    botonOptimizar.addEventListener('click', () => {
+    // OYENTE #2: Escucha el clic del botón. 
+    // ¡Ahora la función es "async" para poder usar "await"!
+    botonOptimizar.addEventListener('click', async () => {
         
-        // Cuando alguien haga click, se ejecutará este código:
-        
+        // 1. Obtenemos la selección del usuario (esto es igual que antes)
         const perfilRiesgo = document.querySelector('input[name="perfil"]:checked').value;
-        const periodo = document.querySelector('input[name="periodo"]:checked').value;
+        const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
         const tickers = tickersInput.value;
 
-        const seleccionUsuario = {
-            perfil: perfilRiesgo,
-            periodo: periodo,
-            activos: tickers
-        };
+        // Validamos que el usuario haya escrito algo
+        if (!tickers) {
+            alert("Por favor, ingresa al menos un ticker.");
+            return; // Detenemos la ejecución si no hay tickers
+        }
 
-        console.log("El usuario ha seleccionado:");
-        console.log(seleccionUsuario);
+        // --- ¡AQUÍ EMPIEZA LA MAGIA NUEVA! ---
 
-        alert("¡Recibimos tu selección! Revisa la consola para ver los detalles (Clic derecho -> Inspeccionar -> Consola).");
+        console.log("Iniciando la búsqueda de datos para:", tickers);
+        alert("¡Recibido! Estamos buscando los datos en Yahoo Finance. Esto puede tardar unos segundos...");
+
+        try {
+            // 2. Preparamos las fechas
+            const fechaFin = new Date();
+            const fechaInicio = new Date();
+            fechaInicio.setFullYear(fechaInicio.getFullYear() - periodoAños);
+
+            // Convertimos las fechas a "timestamps", que es como a Yahoo Finance le gusta
+            const periodoInicio = Math.floor(fechaInicio.getTime() / 1000);
+            const periodoFin = Math.floor(fechaFin.getTime() / 1000);
+
+            // 3. Construimos la URL para pedir los datos.
+            // Por ahora, pediremos los datos del PRIMER ticker que el usuario escriba.
+            const primerTicker = tickers.split(',')[0].trim(); // Tomamos solo el primero y le quitamos espacios
+            
+            const urlYahoo = `https://query1.finance.yahoo.com/v7/finance/download/${primerTicker}?period1=${periodoInicio}&period2=${periodoFin}&interval=1d&events=history`;
+            
+            // 4. Usamos nuestro "intermediario amigo" para evitar problemas de CORS
+            const urlProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlYahoo)}`;
+
+            // 5. ¡Llamamos al mensajero! Usamos "await" para esperar la respuesta
+            const respuesta = await fetch(urlProxy);
+            const datos = await respuesta.json(); // Le pedimos que nos de el contenido
+
+            // 6. Por ahora, solo mostraremos en la consola lo que recibimos.
+            // El contenido real de Yahoo está dentro de "datos.contents"
+            console.log("¡Datos recibidos de Yahoo Finance!");
+            console.log(datos.contents);
+
+            alert("¡Datos recibidos con éxito! Revisa la consola para ver la respuesta de Yahoo Finance.");
+
+        } catch (error) {
+            // Si algo sale mal (ej: el ticker no existe), atrapamos el error
+            console.error("Hubo un error al buscar los datos:", error);
+            alert("Hubo un error al buscar los datos. Asegúrate de que el ticker sea correcto y vuelve a intentarlo.");
+        }
     });
 });
