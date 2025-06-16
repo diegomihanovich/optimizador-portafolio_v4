@@ -71,9 +71,18 @@ async function fetchDataForTicker(ticker) {
 
     const respuesta = await fetch(urlProxy);
     if (!respuesta.ok) {
-        throw new Error(`Error al buscar datos para ${ticker}`);
+        throw new Error(`Error de red al buscar datos para ${ticker}`);
     }
     const datos = await respuesta.json();
+    
+    // --- ¡AQUÍ ESTÁ LA VALIDACIÓN NUEVA! ---
+    // Chequeamos si el contenido que nos llegó es un error de Yahoo o datos reales.
+    // Un CSV válido siempre empieza con "Date". Un error de Yahoo, no.
+    if (!datos.contents || !datos.contents.startsWith('Date,')) {
+        // Lanzamos un error específico para que el usuario sepa qué ticker falló.
+        throw new Error(`No se encontraron datos para el ticker "${ticker}". Puede que no exista o no haya datos para el período seleccionado.`);
+    }
+
     return { ticker, datos };
 }
 
