@@ -64,28 +64,44 @@ async function fetchDataForTicker(ticker) {
     }
     return { ticker, data: datos.chart.result[0] };
 }
+// REEMPLAZA SOLAMENTE ESTA FUNCIÓN EN TU SCRIPT.JS
+
 function organizarDatosPorFecha(respuestas) {
     if (respuestas.length === 0) return {};
-    const tablaFinal = {};
-    const primerActivo = respuestas[0];
-    const timestamps = primerActivo.data.timestamp;
-    for (let i = 0; i < timestamps.length; i++) {
-        const ts = timestamps[i] * 1000;
-        const fecha = new Date(ts).toISOString().split('T')[0];
-        let filaCompleta = true;
-        const filaTemporal = {};
-        for (const resp of respuestas) {
-            const ticker = resp.ticker;
-            const precioCierre = resp.data.indicators.quote[0].close[i];
-            if (precioCierre !== null) {
-                filaTemporal[ticker] = precioCierre;
-            } else {
-                filaCompleta = false; break;
+
+    // Paso 1: Crear un mapa de precios para cada ticker, con la fecha como clave.
+    const datosPorTicker = new Map();
+    respuestas.forEach(resp => {
+        const precios = new Map();
+        for (let i = 0; i < resp.data.timestamp.length; i++) {
+            const fecha = new Date(resp.data.timestamp[i] * 1000).toISOString().split('T')[0];
+            const precio = resp.data.indicators.quote[0].close[i];
+            if (precio !== null) {
+                precios.set(fecha, precio);
             }
         }
-        if (filaCompleta) tablaFinal[fecha] = filaTemporal;
-    }
+        datosPorTicker.set(resp.ticker, precios);
+    });
+
+    // Paso 2: Encontrar la intersección de fechas (días que existen en TODOS los tickers)
+    const tickers = Array.from(datosPorTicker.keys());
+    const fechasBase = Array.from(datosPorTicker.get(tickers[0]).keys());
+    
+    const fechasComunes = fechasBase.filter(fecha => 
+        tickers.every(ticker => datosPorTicker.get(ticker).has(fecha))
+    );
+
+    // Paso 3: Construir la tabla final usando solo las fechas comunes
+    const tablaFinal = {};
+    fechasComunes.forEach(fecha => {
+        tablaFinal[fecha] = {};
+        tickers.forEach(ticker => {
+            tablaFinal[fecha][ticker] = datosPorTicker.get(ticker).get(fecha);
+        });
+    });
+
     return tablaFinal;
+}
 }
 function _calcularCovarianzaManual(serieA, serieB) {
     const mediaA = math.mean(serieA);
