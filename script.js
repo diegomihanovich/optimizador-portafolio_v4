@@ -1,21 +1,19 @@
-// --- SCRIPT.JS VERSIÓN "INDEPENDENCIA TOTAL" ---
-
 document.addEventListener('DOMContentLoaded', () => {
+    // ... (El código del event listener principal es muy similar)
     const botonOptimizar = document.getElementById('optimizar-btn');
     const tickersInput = document.getElementById('tickers-input');
 
     const iniciarOptimizacion = async () => {
+        // ... (Toda la lógica de búsqueda y cálculo es igual)
         const tickersString = tickersInput.value;
         if (!tickersString.trim()) {
             alert("Por favor, ingresa al menos un ticker.");
             return;
         }
-        alert("¡Recibido! Buscando y procesando datos...");
+        alert("¡Recibido! Iniciando proceso completo...");
         try {
             const tickers = tickersString.split(',').map(ticker => ticker.trim().toUpperCase());
-            const resultadosPromesas = await Promise.allSettled(
-                tickers.map(ticker => fetchDataForTicker(ticker))
-            );
+            const resultadosPromesas = await Promise.allSettled(tickers.map(ticker => fetchDataForTicker(ticker)));
             const respuestasExitosas = resultadosPromesas.filter(res => res.status === 'fulfilled').map(res => res.value);
             const respuestasFallidas = resultadosPromesas.filter(res => res.status === 'rejected');
             if (respuestasFallidas.length > 0) {
@@ -23,17 +21,16 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Algunos tickers fallaron:\n", errores);
                 alert(`Algunos tickers fallaron. Revisa la consola.`);
             }
-            if (respuestasExitosas.length === 0) {
-                throw new Error("No se pudieron obtener datos para ninguno de los tickers ingresados.");
-            }
+            if (respuestasExitosas.length === 0) throw new Error("No se pudieron obtener datos para ninguno de los tickers.");
 
             const datosOrganizados = organizarDatosPorFecha(respuestasExitosas);
-            console.log("¡Datos organizados y listos!", datosOrganizados);
-
             const metricasFinancieras = calcularMetricas(datosOrganizados);
-            
-            console.log("¡Métricas financieras calculadas!", metricasFinancieras);
-            alert("¡Métricas calculadas con éxito! Estamos listos para el paso final.");
+            const perfilRiesgo = document.querySelector('input[name="perfil"]:checked').value;
+            const portafolioOptimo = encontrarPortafolioOptimo(metricasFinancieras, perfilRiesgo);
+
+            // --- ¡CAMBIO FINAL! ---
+            // En lugar de console.log y alert, llamamos a nuestra función "artista"
+            mostrarResultados(portafolioOptimo);
 
         } catch (error) {
             console.error("Hubo un error crítico en el proceso:", error);
@@ -50,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// --- Las funciones de ayuda (fetchData, organizarDatos, calcularMetricas, encontrarPortafolioOptimo) son las mismas que la versión anterior ---
+// --- Las incluyo todas para que solo tengas que copiar y pegar un archivo ---
+
 async function fetchDataForTicker(ticker) {
     const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
     const rango = `${periodoAños}y`;
@@ -64,7 +64,6 @@ async function fetchDataForTicker(ticker) {
     }
     return { ticker, data: datos.chart.result[0] };
 }
-
 function organizarDatosPorFecha(respuestas) {
     if (respuestas.length === 0) return {};
     const tablaFinal = {};
@@ -81,72 +80,136 @@ function organizarDatosPorFecha(respuestas) {
             if (precioCierre !== null) {
                 filaTemporal[ticker] = precioCierre;
             } else {
-                filaCompleta = false;
-                break;
+                filaCompleta = false; break;
             }
         }
-        if (filaCompleta) {
-            tablaFinal[fecha] = filaTemporal;
-        }
+        if (filaCompleta) tablaFinal[fecha] = filaTemporal;
     }
     return tablaFinal;
 }
-
-// --- NUEVA FUNCIÓN AUXILIAR PARA CALCULAR LA COVARIANZA MANUALMENTE ---
 function _calcularCovarianzaManual(serieA, serieB) {
     const mediaA = math.mean(serieA);
     const mediaB = math.mean(serieB);
     let cov = 0;
-    const n = serieA.length;
-    for (let i = 0; i < n; i++) {
+    for (let i = 0; i < serieA.length; i++) {
         cov += (serieA[i] - mediaA) * (serieB[i] - mediaB);
     }
-    return cov / (n - 1);
+    return cov / (serieA.length - 1);
 }
-
 function calcularMetricas(datosOrganizados) {
-    console.log("Ejecutando la versión AUTOSUFICIENTE de calcularMetricas...");
-
     const fechas = Object.keys(datosOrganizados).sort();
     const tickers = Object.keys(datosOrganizados[fechas[0]]);
     const nActivos = tickers.length;
-
-    const seriesDePrecios = tickers.map(ticker => 
-        fechas.map(fecha => datosOrganizados[fecha][ticker])
-    );
-
+    const seriesDePrecios = tickers.map(ticker => fechas.map(fecha => datosOrganizados[fecha][ticker]));
     const seriesDeRendimientos = seriesDePrecios.map(serie => {
         const rendimientos = [];
         for (let i = 1; i < serie.length; i++) {
-            const rendimiento = (serie[i] / serie[i-1]) - 1;
-            rendimientos.push(rendimiento);
+            rendimientos.push((serie[i] / serie[i-1]) - 1);
         }
         return rendimientos;
     });
-
     const rendimientosEsperados = seriesDeRendimientos.map(serie => math.mean(serie));
     const volatilidades = seriesDeRendimientos.map(serie => math.std(serie));
-
-    // --- ¡AQUÍ ESTÁ EL CAMBIO CLAVE! ---
-    // Construimos la Matriz de Covarianza usando NUESTRA PROPIA FUNCIÓN
     const matrizCovarianza = [];
     for (let i = 0; i < nActivos; i++) {
         matrizCovarianza[i] = [];
         for (let j = 0; j < nActivos; j++) {
-            const cov = _calcularCovarianzaManual(seriesDeRendimientos[i], seriesDeRendimientos[j]);
-            matrizCovarianza[i][j] = cov;
+            matrizCovarianza[i][j] = _calcularCovarianzaManual(seriesDeRendimientos[i], seriesDeRendimientos[j]);
         }
     }
-
     const diasDeMercado = 252;
     const rendimientosAnualizados = rendimientosEsperados.map(r => r * diasDeMercado);
     const volatilidadesAnualizadas = volatilidades.map(v => v * Math.sqrt(diasDeMercado));
     const matrizCovAnualizada = math.multiply(matrizCovarianza, diasDeMercado);
+    return { tickers, rendimientosAnualizados, volatilidadesAnualizadas, matrizCovarianza: matrizCovAnualizada };
+}
+function encontrarPortafolioOptimo(metricas, perfilRiesgo) {
+    const numSimulaciones = 10000;
+    const nActivos = metricas.tickers.length;
+    const tasaLibreDeRiesgo = 0.02;
+    let mejorPortafolio = { pesos: [], rendimiento: 0, volatilidad: 0, sharpe: -Infinity };
+    for (let i = 0; i < numSimulaciones; i++) {
+        let pesos = [];
+        let sumaPesos = 0;
+        for (let j = 0; j < nActivos; j++) {
+            const pesoAleatorio = Math.random();
+            pesos.push(pesoAleatorio);
+            sumaPesos += pesoAleatorio;
+        }
+        pesos = pesos.map(p => p / sumaPesos);
+        const rendimientoPortafolio = math.multiply(pesos, metricas.rendimientosAnualizados);
+        const volatilidadPortafolio = Math.sqrt(math.multiply(math.multiply(pesos, metricas.matrizCovarianza), pesos));
+        const sharpeRatio = (rendimientoPortafolio - tasaLibreDeRiesgo) / volatilidadPortafolio;
+        if (perfilRiesgo === 'conservador') {
+            if (volatilidadPortafolio < (mejorPortafolio.volatilidad || Infinity)) {
+                mejorPortafolio = { pesos, rendimiento: rendimientoPortafolio, volatilidad: volatilidadPortafolio, sharpe: sharpeRatio };
+            }
+        } else if (perfilRiesgo === 'agresivo') {
+            if (rendimientoPortafolio > mejorPortafolio.rendimiento) {
+                mejorPortafolio = { pesos, rendimiento: rendimientoPortafolio, volatilidad: volatilidadPortafolio, sharpe: sharpeRatio };
+            }
+        } else {
+            if (sharpeRatio > mejorPortafolio.sharpe) {
+                mejorPortafolio = { pesos, rendimiento: rendimientoPortafolio, volatilidad: volatilidadPortafolio, sharpe: sharpeRatio };
+            }
+        }
+    }
+    const pesosFormateados = {};
+    metricas.tickers.forEach((ticker, i) => {
+        pesosFormateados[ticker] = mejorPortafolio.pesos[i];
+    });
+    mejorPortafolio.pesos = pesosFormateados;
+    return mejorPortafolio;
+}
+
+
+// --- ¡NUEVA FUNCIÓN ARTISTA! ---
+let miGrafico; // Variable global para guardar la instancia del gráfico
+
+function mostrarResultados(portafolioOptimo) {
+    const contenedorTexto = document.getElementById('texto-resultados');
+    const lienzo = document.getElementById('grafico-portafolio');
     
-    return {
-        tickers,
-        rendimientosAnualizados,
-        volatilidadesAnualizadas,
-        matrizCovarianza: matrizCovAnualizada
-    };
+    // 1. Mostrar los resultados en texto
+    let htmlResultados = '<h3>Asignación Recomendada:</h3><ul>';
+    for (const ticker in portafolioOptimo.pesos) {
+        const porcentaje = (portafolioOptimo.pesos[ticker] * 100).toFixed(2);
+        htmlResultados += `<li><b>${ticker}:</b> ${porcentaje}%</li>`;
+    }
+    htmlResultados += '</ul><hr>';
+    htmlResultados += `<h4>Métricas del Portafolio:</h4>`;
+    htmlResultados += `<p><b>Rendimiento Anual Esperado:</b> ${(portafolioOptimo.rendimiento * 100).toFixed(2)}%</p>`;
+    htmlResultados += `<p><b>Volatilidad Anual (Riesgo):</b> ${(portafolioOptimo.volatilidad * 100).toFixed(2)}%</p>`;
+    
+    contenedorTexto.innerHTML = htmlResultados;
+
+    // 2. Dibujar el gráfico de torta
+    // Si ya existe un gráfico, lo destruimos antes de crear uno nuevo
+    if (miGrafico) {
+        miGrafico.destroy();
+    }
+
+    miGrafico = new Chart(lienzo, {
+        type: 'pie', // Tipo de gráfico
+        data: {
+            labels: Object.keys(portafolioOptimo.pesos), // Nombres de los tickers
+            datasets: [{
+                label: 'Asignación de Portafolio',
+                data: Object.values(portafolioOptimo.pesos), // Porcentajes
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Distribución del Portafolio Óptimo'
+                }
+            }
+        }
+    });
 }
