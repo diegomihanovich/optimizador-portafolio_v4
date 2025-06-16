@@ -52,19 +52,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+
 async function fetchDataForTicker(ticker) {
     const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
     const rango = `${periodoAños}y`;
+
     const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${rango}&interval=1d`;
-    const urlProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlYahoo)}`;
+    
+    // --- ESTA ES LA ÚNICA LÍNEA QUE CAMBIA ---
+    // Usamos nuestro nuevo "cartero": corsproxy.io
+    const urlProxy = `https://corsproxy.io/?${encodeURIComponent(urlYahoo)}`;
+
     const respuesta = await fetch(urlProxy);
     if (!respuesta.ok) throw new Error(`Error de red para ${ticker}`);
-    const datosCrudos = await respuesta.json();
-    const datos = JSON.parse(datosCrudos.contents);
+
+    // Como este proxy funciona un poco distinto, no necesitamos el .json() y el JSON.parse()
+    const datos = await respuesta.json(); 
+
     if (!datos.chart || datos.chart.error) {
         const mensajeError = datos.chart?.error?.description || `No se encontraron datos para el ticker "${ticker}"`;
         throw new Error(mensajeError);
     }
+    
     return { ticker, data: datos.chart.result[0] };
 }
 
