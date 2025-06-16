@@ -6,6 +6,7 @@
     <title>El Optimizador Valiente</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjs/13.0.0/math.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -15,9 +16,9 @@
 
         <fieldset>
             <legend>1. Elige tu perfil de riesgo:</legend>
-            <label><input type="radio" name="perfil" value="conservador" checked> Conservador (Prefiero dormir tranquilo)</label><br>
-            <label><input type="radio" name="perfil" value="moderado"> Moderado (Un balance entre riesgo y beneficio)</label><br>
-            <label><input type="radio" name="perfil" value="agresivo"> Agresivo (¡Vamos por el máximo rendimiento!)</label>
+            <label><input type="radio" name="perfil" value="conservador" checked> Conservador</label><br>
+            <label><input type="radio" name="perfil" value="moderado"> Moderado</label><br>
+            <label><input type="radio" name="perfil" value="agresivo"> Agresivo</label>
         </fieldset>
 
         <fieldset>
@@ -35,13 +36,13 @@
         <button id="optimizar-btn">¡Optimizar mi Portafolio!</button>
 
         <div id="resultados-container">
-            <h2>Tu Portafolio Óptimo:</h2>
-            <div id="grafico-torta">
-                </div>
-            <div id="texto-resultados">
-                </div>
+            <div id="texto-resultados"></div>
+            <div style="width: 70%; margin: auto; padding-top: 20px;">
+                 <canvas id="grafico-portafolio"></canvas>
+            </div>
         </div>
     </div>
+
     <script src="script.js"></script>
 </body>
 </html>
