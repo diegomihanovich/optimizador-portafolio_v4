@@ -21,21 +21,11 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const tickers = tickersString.split(',').map(ticker => ticker.trim().toUpperCase());
             
-            const respuestasCrudas = await Promise.all(
+            const respuestas = await Promise.all(
                 tickers.map(ticker => fetchDataForTicker(ticker))
             );
 
-            const datosParseados = respuestasCrudas.map((respuesta, index) => {
-                const csvData = respuesta.datos.contents;
-                const ticker = tickers[index];
-                const parsed = Papa.parse(csvData, {
-                    header: true,
-                    dynamicTyping: true
-                });
-                return { ticker, data: parsed.data };
-            });
-
-            const datosOrganizados = organizarDatosPorFecha(datosParseados);
+            const datosOrganizados = organizarDatosPorFecha(respuestas);
 
             console.log("¡Datos organizados y listos para calcular!");
             console.log(datosOrganizados);
@@ -48,49 +38,57 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// Función dedicada a buscar datos para UN solo ticker
+// --- FUNCIONES DE AYUDA REESCRITAS ---
+
+// Función NUEVA para buscar datos en la nueva dirección de Yahoo
 async function fetchDataForTicker(ticker) {
     const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
-    const fechaFin = new Date();
-    const fechaInicio = new Date();
-    fechaInicio.setFullYear(fechaInicio.getFullYear() - periodoAños);
+    // La nueva API usa "range" en lugar de fechas exactas, lo cual es más fácil
+    const rango = `${periodoAños}y`; // ej: "5y" para 5 años
 
-    const periodoInicio = Math.floor(fechaInicio.getTime() / 1000);
-    const periodoFin = Math.floor(fechaFin.getTime() / 1000);
-
-    const urlYahoo = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?period1=${periodoInicio}&period2=${periodoFin}&interval=1d&events=history`;
+    // Esta es la NUEVA URL que sí funciona
+    const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${rango}&interval=1d`;
     const urlProxy = `https://api.allorigins.win/get?url=${encodeURIComponent(urlYahoo)}`;
 
     const respuesta = await fetch(urlProxy);
-    if (!respuesta.ok) {
-        throw new Error(`Error de red al buscar datos para ${ticker}`);
-    }
-    const datos = await respuesta.json();
-    
-    // --- AQUÍ ESTÁ LA CORRECCIÓN ---
-    // Chequeamos si el contenido existe y, ANTES de revisar si empieza con "Date", le quitamos los espacios en blanco del principio con .trim()
-    if (!datos.contents || !datos.contents.trim().startsWith('Date,')) {
-        throw new Error(`No se encontraron datos para el ticker "${ticker}". Puede que no exista o no haya datos para el período seleccionado.`);
-    }
+    if (!respuesta.ok) throw new Error(`Error de red para ${ticker}`);
 
-    return { ticker, datos };
+    const datosCrudos = await respuesta.json();
+    const datos = JSON.parse(datosCrudos.contents); // El contenido es un string JSON que hay que parsear
+
+    // Validamos que Yahoo no devolvió un error interno
+    if (datos.chart.error) {
+        throw new Error(datos.chart.error.description);
+    }
+    
+    // Devolvemos el ticker y el resultado bueno
+    return { ticker, data: datos.chart.result[0] };
 }
 
-// Función que toma los datos de todos los tickers y los organiza por fecha
-function organizarDatosPorFecha(datosParseados) {
+// Función NUEVA para organizar los datos desde el formato JSON
+function organizarDatosPorFecha(respuestas) {
     const tablaFinal = {};
+    const tickers = respuestas.map(r => r.ticker);
 
-    datosParseados.forEach(activo => {
-        activo.data.forEach(fila => {
-            if (fila.Date && fila['Adj Close'] !== null) {
-                const fecha = fila.Date;
-                if (!tablaFinal[fecha]) {
-                    tablaFinal[fecha] = {};
-                }
-                tablaFinal[fecha][activo.ticker] = fila['Adj Close'];
+    // Necesitamos las fechas del primer activo como referencia
+    const timestamps = respuestas[0].data.timestamp;
+
+    for (let i = 0; i < timestamps.length; i++) {
+        // Convertimos el timestamp a una fecha legible YYYY-MM-DD
+        const ts = timestamps[i] * 1000;
+        const fecha = new Date(ts).toISOString().split('T')[0];
+
+        tablaFinal[fecha] = {};
+
+        // Para cada ticker, buscamos el precio de cierre en el mismo índice (i)
+        respuestas.forEach(resp => {
+            const ticker = resp.ticker;
+            const preciosCierre = resp.data.indicators.quote[0].close;
+            // Nos aseguramos que haya un precio para ese día
+            if (preciosCierre && preciosCierre[i] !== null) {
+                tablaFinal[fecha][ticker] = preciosCierre[i];
             }
         });
-    });
-
+    }
     return tablaFinal;
 }
