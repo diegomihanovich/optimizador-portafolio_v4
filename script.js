@@ -1,4 +1,4 @@
-// --- CÓDIGO FINAL Y VERIFICADO PARA SCRIPT.JS (VERSIÓN CON PRUEBA) ---
+// --- SCRIPT.JS VERSIÓN "INDEPENDENCIA TOTAL" ---
 
 document.addEventListener('DOMContentLoaded', () => {
     const botonOptimizar = document.getElementById('optimizar-btn');
@@ -16,14 +16,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const resultadosPromesas = await Promise.allSettled(
                 tickers.map(ticker => fetchDataForTicker(ticker))
             );
-            const respuestasExitosas = resultadosPromesas
-                .filter(res => res.status === 'fulfilled')
-                .map(res => res.value);
+            const respuestasExitosas = resultadosPromesas.filter(res => res.status === 'fulfilled').map(res => res.value);
             const respuestasFallidas = resultadosPromesas.filter(res => res.status === 'rejected');
             if (respuestasFallidas.length > 0) {
                 const errores = respuestasFallidas.map(res => res.reason.message).join('\n');
                 console.error("Algunos tickers fallaron:\n", errores);
-                alert(`Algunos tickers fallaron. Revisa la consola para más detalles.`);
+                alert(`Algunos tickers fallaron. Revisa la consola.`);
             }
             if (respuestasExitosas.length === 0) {
                 throw new Error("No se pudieron obtener datos para ninguno de los tickers ingresados.");
@@ -35,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const metricasFinancieras = calcularMetricas(datosOrganizados);
             
             console.log("¡Métricas financieras calculadas!", metricasFinancieras);
-            alert("¡Métricas calculadas con éxito! Revisa la consola. Próximo paso: la optimización.");
+            alert("¡Métricas calculadas con éxito! Estamos listos para el paso final.");
 
         } catch (error) {
             console.error("Hubo un error crítico en el proceso:", error);
@@ -94,10 +92,20 @@ function organizarDatosPorFecha(respuestas) {
     return tablaFinal;
 }
 
-// --- VERSIÓN CORREGIDA Y VERIFICADA DE LA FUNCIÓN DE CÁLCULOS ---
+// --- NUEVA FUNCIÓN AUXILIAR PARA CALCULAR LA COVARIANZA MANUALMENTE ---
+function _calcularCovarianzaManual(serieA, serieB) {
+    const mediaA = math.mean(serieA);
+    const mediaB = math.mean(serieB);
+    let cov = 0;
+    const n = serieA.length;
+    for (let i = 0; i < n; i++) {
+        cov += (serieA[i] - mediaA) * (serieB[i] - mediaB);
+    }
+    return cov / (n - 1);
+}
+
 function calcularMetricas(datosOrganizados) {
-    // MENSAJE DE PRUEBA: Si vemos esto, estamos ejecutando el código nuevo.
-    console.log("Ejecutando la NUEVA versión de calcularMetricas...");
+    console.log("Ejecutando la versión AUTOSUFICIENTE de calcularMetricas...");
 
     const fechas = Object.keys(datosOrganizados).sort();
     const tickers = Object.keys(datosOrganizados[fechas[0]]);
@@ -119,13 +127,13 @@ function calcularMetricas(datosOrganizados) {
     const rendimientosEsperados = seriesDeRendimientos.map(serie => math.mean(serie));
     const volatilidades = seriesDeRendimientos.map(serie => math.std(serie));
 
-    // Construimos la Matriz de Covarianza manualmente
+    // --- ¡AQUÍ ESTÁ EL CAMBIO CLAVE! ---
+    // Construimos la Matriz de Covarianza usando NUESTRA PROPIA FUNCIÓN
     const matrizCovarianza = [];
     for (let i = 0; i < nActivos; i++) {
         matrizCovarianza[i] = [];
         for (let j = 0; j < nActivos; j++) {
-            // Usamos la función correcta de math.js que sí existe
-            const cov = math.covariance(seriesDeRendimientos[i], seriesDeRendimientos[j]);
+            const cov = _calcularCovarianzaManual(seriesDeRendimientos[i], seriesDeRendimientos[j]);
             matrizCovarianza[i][j] = cov;
         }
     }
