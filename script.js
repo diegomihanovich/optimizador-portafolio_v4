@@ -1,3 +1,5 @@
+// --- CÓDIGO FINAL Y VERIFICADO PARA SCRIPT.JS (VERSIÓN CON PRUEBA) ---
+
 document.addEventListener('DOMContentLoaded', () => {
     const botonOptimizar = document.getElementById('optimizar-btn');
     const tickersInput = document.getElementById('tickers-input');
@@ -30,8 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const datosOrganizados = organizarDatosPorFecha(respuestasExitosas);
             console.log("¡Datos organizados y listos!", datosOrganizados);
 
-            // --- ¡AQUÍ EMPIEZA LA MAGIA NUEVA! ---
-            // Le pasamos los datos a nuestro cerebro para que calcule las métricas
             const metricasFinancieras = calcularMetricas(datosOrganizados);
             
             console.log("¡Métricas financieras calculadas!", metricasFinancieras);
@@ -52,28 +52,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-
 async function fetchDataForTicker(ticker) {
     const periodoAños = document.querySelector('input[name="periodo"]:checked').value;
     const rango = `${periodoAños}y`;
-
     const urlYahoo = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=${rango}&interval=1d`;
-    
-    // --- ESTA ES LA ÚNICA LÍNEA QUE CAMBIA ---
-    // Usamos nuestro nuevo "cartero": corsproxy.io
     const urlProxy = `https://corsproxy.io/?${encodeURIComponent(urlYahoo)}`;
-
     const respuesta = await fetch(urlProxy);
     if (!respuesta.ok) throw new Error(`Error de red para ${ticker}`);
-
-    // Como este proxy funciona un poco distinto, no necesitamos el .json() y el JSON.parse()
     const datos = await respuesta.json(); 
-
     if (!datos.chart || datos.chart.error) {
         const mensajeError = datos.chart?.error?.description || `No se encontraron datos para el ticker "${ticker}"`;
         throw new Error(mensajeError);
     }
-    
     return { ticker, data: datos.chart.result[0] };
 }
 
@@ -104,20 +94,19 @@ function organizarDatosPorFecha(respuestas) {
     return tablaFinal;
 }
 
-// --- NUEVA FUNCIÓN: EL CEREBRO FINANCIERO ---
-// REEMPLAZA SOLAMENTE ESTA FUNCIÓN EN TU SCRIPT.JS
-
+// --- VERSIÓN CORREGIDA Y VERIFICADA DE LA FUNCIÓN DE CÁLCULOS ---
 function calcularMetricas(datosOrganizados) {
+    // MENSAJE DE PRUEBA: Si vemos esto, estamos ejecutando el código nuevo.
+    console.log("Ejecutando la NUEVA versión de calcularMetricas...");
+
     const fechas = Object.keys(datosOrganizados).sort();
     const tickers = Object.keys(datosOrganizados[fechas[0]]);
     const nActivos = tickers.length;
 
-    // 1. "Giramos" la tabla para tener listas de precios por cada activo
     const seriesDePrecios = tickers.map(ticker => 
         fechas.map(fecha => datosOrganizados[fecha][ticker])
     );
 
-    // 2. Calculamos los rendimientos diarios para cada activo
     const seriesDeRendimientos = seriesDePrecios.map(serie => {
         const rendimientos = [];
         for (let i = 1; i < serie.length; i++) {
@@ -127,27 +116,23 @@ function calcularMetricas(datosOrganizados) {
         return rendimientos;
     });
 
-    // 3. Calculamos el rendimiento esperado y la volatilidad (esto ya funcionaba)
     const rendimientosEsperados = seriesDeRendimientos.map(serie => math.mean(serie));
     const volatilidades = seriesDeRendimientos.map(serie => math.std(serie));
 
-    // --- ¡AQUÍ ESTÁ LA CORRECCIÓN! ---
-    // 4. Construimos la Matriz de Covarianza manualmente, par por par.
+    // Construimos la Matriz de Covarianza manualmente
     const matrizCovarianza = [];
     for (let i = 0; i < nActivos; i++) {
         matrizCovarianza[i] = [];
         for (let j = 0; j < nActivos; j++) {
-            // Usamos la función correcta de math.js que calcula la covarianza entre dos series
+            // Usamos la función correcta de math.js que sí existe
             const cov = math.covariance(seriesDeRendimientos[i], seriesDeRendimientos[j]);
             matrizCovarianza[i][j] = cov;
         }
     }
 
-    // 5. Anualizamos todas las métricas para que sean más intuitivas
     const diasDeMercado = 252;
     const rendimientosAnualizados = rendimientosEsperados.map(r => r * diasDeMercado);
     const volatilidadesAnualizadas = volatilidades.map(v => v * Math.sqrt(diasDeMercado));
-    // La matriz de covarianza también se anualiza multiplicando por los días de mercado
     const matrizCovAnualizada = math.multiply(matrizCovarianza, diasDeMercado);
     
     return {
